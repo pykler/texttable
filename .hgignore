@@ -1,0 +1,20 @@
+# use glob syntax.
+syntax: glob
+
+# HG Revert
+*.orig
+
+# vi swap files
+*.swp
+# backup & tmp/* files
+*.bak
+tmp/
+
+# py compiled files
+*.pyc
+*.pyo
+
+# switch to regexp syntax.
+#syntax: regexp
+#^\.pc/
+
