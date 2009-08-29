@@ -3,6 +3,39 @@ Copyright 2009 Hatem Nassrat.
 This software is released under the terms of the GPLv3
 
 Module to facilitate printing of a table in textual format.
+
+Usage
+-----
+
+::
+
+  from texttable import *
+
+  # create a table object
+  table = [
+      [Cell(2,2, 'the lazy brown'), Cell(1,1, 'jumped')],
+      [Cell(1,2, 'over')],
+      [Cell(1,1, 'fox'), Cell(1,1, 'cow')],
+      [Cell(2,1, 'quick dumb'), Cell(1,1, 'red')],
+  ]
+
+  # pretty print the table to stdout
+  pprint_table(table)
+  # pretty print the table to a string buffer
+  import cStringIO
+  pprint_table(table, cStringIO.StringIO())
+
+The above example would output
+
+::
+
+  +----------------------+
+  |the lazy brown |jumped|
+  |               |over  |
+  |fox        |cow|      |
+  |quick dumb     |red   |
+  +----------------------+
+
 '''
 
 import sys
@@ -169,7 +202,13 @@ def print_table_cols(cmap, l, cols, stream=sys.stdout):
         j = 0
         while j < len(l[i]):
             if l[i][j] not in cmap:
-                stream.write(pad(' ', cols[j])+'|')
+                a = l[i][j]
+                b = -1 if j >= len(l[i])-1 else l[i][j+1]
+                stream.write(pad(' ', cols[j]))
+                if a != b:
+                    stream.write('|')
+                else:
+                    stream.write(' ')
                 j += 1
                 continue
             cell = cmap.pop(l[i][j])
@@ -192,7 +231,7 @@ def pprint_table(table, stream=sys.stdout):
 #     print l # Debug
     cols = calculate_colsize(cmap, l)
 #     print cols # Debug
-    print_table_cols(cmap, l, cols)
+    print_table_cols(cmap, l, cols, stream)
 
 
 if __name__ == '__main__':
