@@ -2,24 +2,38 @@ import sys
 import random
 
 class Cell(object):
-    def __init__(self,c,r,t=None):
-        if t is None:
-            t = ''.join([
+    '''
+    An object representing a table cell
+    A table is represented as a list of lists containing Cell instances.
+    '''
+    def __init__(self, colspan, rowspan, contents=None):
+        if contents is None:
+            # for testing only
+            # this will be removed
+            contents = ''.join([
                 chr(random.randint(97,122))
                 for x in range(random.randint(0,15))])
-        self.colspan = c
-        self.rowspan = r
-        self.contents = t
+        self.colspan = colspan
+        self.rowspan = rowspan
+        self.contents = contents
 
 class xlist(list):
-    def make_dynamic(self):
-        self.default_attr = 'ddefault'
-    def _get_default(self):
-        return getattr(self, self.default_attr)
-    ddefault = property(lambda self: xlist())
-    sdefault = None
-    default_attr = 'sdefault'
-    default = property(_get_default)
+    '''
+    An N dimentional list (or array) that expands as you request indices,
+    thus never returning an index out of bounds error.
+
+    Same as list.__init__ + accepts `dim` kwarg.
+    `dim` is the number of dimensions represented by the xlist.
+    defaults to `xlist.default_dim`
+    '''
+    default_dim = 2 # defaults to 2D xlist
+    default_leaf = None
+    def __init__(self, *args, **kwargs):
+        self.dim = kwargs.pop('dim', self.default_dim)
+        list.__init__(self, *args, **kwargs)
+    @property
+    def default(self):
+        return self.default_leaf if self.dim <= 1 else xlist(dim=self.dim-1)
     def _expand(self, i):
         if i>= len(self):
             for j in range(i - len(self) + 1):
@@ -32,17 +46,7 @@ class xlist(list):
         return list.__setitem__(self, i, x)
 
 
-matrix = [None]*4
-matrix[0] = [Cell(2,2), Cell(1,1)]
-matrix[1] = [Cell(1,2)]
-matrix[2] = [Cell(1,1), Cell(1,1)]
-matrix[3] = [Cell(2,1), Cell(1,1)]
-
-
-l = xlist()
-l.make_dynamic()
-
-def find_next_col(i, b=0):
+def find_next_col(l, i, b=0):
     if b >= len(l[i]):
         return b
     for x in range(b, len(l[i])):
@@ -50,11 +54,11 @@ def find_next_col(i, b=0):
             return x
     return x+1
 
-def find_next_box(i, cs, rs):
+def find_next_box(l, i, cs, rs):
     ''' i = row, cs, rs are spans '''
     b = 0
     while True:
-        j = max([find_next_col(x, b) for x in range(i, i+rs)])
+        j = max([find_next_col(l, x, b) for x in range(i, i+rs)])
         for x in range(i, i+rs):
             for y in range(j, j+cs):
                 if l[x][y] is not None:
@@ -64,19 +68,29 @@ def find_next_box(i, cs, rs):
             break
     return j
 
-def find_cell(cid):
+def find_cell(l, cid):
     for i in range(len(l)):
         for j in range(len(l[i])):
             if l[i][j] == cid:
                 return i,j
     return -1,-1
 
+def pad(s,k):
+    return s+' '*(k-len(s))
+
+table = [None]*4
+table[0] = [Cell(2,2), Cell(1,1)]
+table[1] = [Cell(1,2)]
+table[2] = [Cell(1,1), Cell(1,1)]
+table[3] = [Cell(2,1), Cell(1,1)]
+
+l = xlist()
 
 cid = 0
 cmap = {}
-for i,r in enumerate(matrix):
+for i,r in enumerate(table):
     for c in r:
-        dy = find_next_box(i, c.colspan, c.rowspan)
+        dy = find_next_box(l, i, c.colspan, c.rowspan)
         for x in range(i, i+c.rowspan):
             for y in range(dy, dy+c.colspan):
                 l[x][y] = cid
@@ -84,7 +98,6 @@ for i,r in enumerate(matrix):
         cid += 1
 
 print l
-
 
 # Calculating col sizes
 
@@ -100,7 +113,7 @@ for j in range(len(cols)):
                 cols[j] = len(cell.contents)
 
 for cid, cell in cmap.items():
-    i,j = find_cell(cid)
+    i,j = find_cell(l, cid)
     cs = range(j,j+cell.colspan)
     s = len(cell.contents) - sum([cols[x] for x in cs])
     x = 0
@@ -111,9 +124,6 @@ for cid, cell in cmap.items():
 print cols
 
 ## Actually printing the table
-
-def pad(s,k):
-    return s+' '*(k-len(s))
 
 sys.stdout.write('+%s+\n' %('-'*(sum(cols)+len(cols)-1)))
 for i in range(len(l)):
