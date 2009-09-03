@@ -183,9 +183,9 @@ def calculate_colsize(cmap, l):
         i,j = find_cell(l, cid)
         cs = range(j,j+cell.colspan)
         s = len(cell.contents) - sum([cols[x] for x in cs])
-        x = 0
+        s -= len(cs) - 1 # removing space if less borders 
         while s > 0:
-            cols[cs[x%len(cols)]] += 1
+            cols[cs[s%len(cs)]] += 1
             s -= 1
     return cols
 
