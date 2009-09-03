@@ -29,12 +29,12 @@ The above example would output
 
 ::
 
-  +---------------------+
-  |the lazy brown|jumped|
-  |              |over  |
-  |fox   |cow    |      |
-  |quick dumb    |red   |
-  +---------------------+
+  +-----------------+
+  |the lazy  |jumped|
+  |brown     |over  |
+  |fox |cow  |      |
+  |quick dumb|red   |
+  +-----------------+
 
 '''
 
@@ -143,6 +143,35 @@ def find_cell(l, cid):
                 return i,j
     return -1,-1
 
+def check_width(words, rowspan, width):
+    '''
+    checks if `words` would fit in `rowspan` rows when wrapped
+    using `width` as the right text boundry.
+    '''
+    c = 1
+    w1 = len(words[0]) if words else 0
+    r = width - w1
+    for w in words[1:]:
+        if len(w) + 1 <= r:
+            r -= len(w) + 1
+        else:
+            c += 1
+            r = width - len(w)
+    return c <= rowspan
+
+def determine_colwidth(s, rowspan):
+    '''
+    determines the minimum column width such that
+    sentence `s` fits in `rowspan` rows
+    '''
+    words = s.split(' ')
+    width = max(
+        [len(w) for w in words] +
+        [int(round(float(len(s))/rowspan))])
+    while not check_width(words, rowspan, width):
+        width += 1
+    return width
+
 def determine_layout(table):
     '''
     lays out `table`in 2D xlist, returning (`cmap`, `l`)
@@ -182,13 +211,46 @@ def calculate_colsize(cmap, l):
     for cid, cell in cmap.items():
         i,j = find_cell(l, cid)
         cs = range(j,j+cell.colspan)
-        s = len(cell.contents) - sum([cols[x] for x in cs])
-        s -= len(cs) - 1 # removing space if less borders 
+        s = determine_colwidth(cell.contents, cell.rowspan) - sum([cols[x] for x in cs])
+        s -= len(cs) - 1 # removing space if less borders
         while s > 0:
             cols[cs[s%len(cs)]] += 1
             s -= 1
     return cols
 
+def wrap_cellcontents(l, cmap, cols):
+    '''
+    wraps content in cells in `cmap` with cell.rowspan > 1 by
+    creating new cells taking words away from the overflowing cells
+    '''
+    for cid, cell in cmap.items():
+        if cell.rowspan > 1:
+            i,j = find_cell(l, cid)
+            cs = range(j,j+cell.colspan)
+            r = width = sum([cols[x] for x in cs])
+            words = cell.contents.split(' ')
+            rows = []
+            w = words[0] if words else ''
+            ws = [w]
+            for w in words[1:]:
+                if len(w) + 1 <= r:
+                    r -= len(w) + 1
+                    ws.append(w)
+                else:
+                    rows.append(ws)
+                    ws = [w]
+                    r = width - len(w)
+            if ws:
+                rows.append(ws)
+            if not rows:
+                continue
+            cell.contents = ' '.join(rows[0])
+            cell.rowspan = 1
+            for x,row in enumerate(rows[1:]):
+                ncid = '%s%s' %(cid, chr(x+98))
+                for y in range(j, j+cell.colspan):
+                    l[i+x+1][y] = ncid
+                cmap[ncid] = Cell(cell.colspan, 1, ' '.join(row))
 
 def print_table_cols(cmap, l, cols, stream=sys.stdout):
     '''
@@ -231,6 +293,8 @@ def pprint_table(table, stream=sys.stdout):
 #     print l # Debug
     cols = calculate_colsize(cmap, l)
 #     print cols # Debug
+    wrap_cellcontents(l, cmap, cols)
+#     print l # Debug
     print_table_cols(cmap, l, cols, stream)
 
 
