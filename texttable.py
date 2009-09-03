@@ -29,12 +29,12 @@ The above example would output
 
 ::
 
-  +----------------------+
-  |the lazy brown |jumped|
-  |               |over  |
-  |fox        |cow|      |
-  |quick dumb     |red   |
-  +----------------------+
+  +---------------------+
+  |the lazy brown|jumped|
+  |              |over  |
+  |fox   |cow    |      |
+  |quick dumb    |red   |
+  +---------------------+
 
 '''
 
